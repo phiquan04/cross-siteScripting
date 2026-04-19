@@ -9,60 +9,50 @@ const XSSDemo = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Demo lỗi DOM XSS và cách khắc phục</h2>
+    <div className="max-w-3xl mx-auto">
+      <div className="bg-red-100 border-l-4 border-red-600 p-4 mb-6 rounded">
+        <p className="text-red-800"><strong>⚠️ DOM‑based XSS</strong> – xảy ra khi dùng <code>dangerouslySetInnerHTML</code> với dữ liệu người dùng.</p>
+      </div>
 
-      <div className="mb-4 flex gap-2">
+      <h2 className="text-2xl font-bold mb-4">🧪 Thực hành tấn công DOM XSS</h2>
+
+      <div className="mb-6 flex gap-2">
         <input
           type="text"
-          placeholder='Nhập nội dung, ví dụ: <img src=x onerror=alert("XSS")>'
+          className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder='Nhập payload: <img src=x onerror=alert("XSS")>'
           value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={e => setUserInput(e.target.value)}
         />
         <button
           onClick={handleSubmit}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition"
         >
           Hiển thị
         </button>
       </div>
 
-      <hr className="my-6" />
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Vulnerable */}
+        <div className="border border-red-400 rounded-lg p-4 bg-red-50 shadow">
+          <h3 className="text-red-700 font-bold text-lg mb-2">🔴 Lỗ hổng (dangerouslySetInnerHTML)</h3>
+          <div className="min-h-[60px] border-b border-red-200 pb-2 mb-2" dangerouslySetInnerHTML={{ __html: alertMessage }} />
+          <p className="text-sm text-gray-600">Script sẽ được thực thi → XSS thành công.</p>
+        </div>
 
-      {/* PHẦN CÓ LỖI XSS */}
-      <div className="border border-red-500 rounded-lg p-4 mb-6 bg-red-50">
-        <h3 className="text-red-700 font-bold text-lg mb-2">
-          🔴 Dễ bị tấn công XSS (dùng dangerouslySetInnerHTML)
-        </h3>
-        <div dangerouslySetInnerHTML={{ __html: alertMessage }} className="mb-2" />
-        <p className="text-sm text-gray-600">
-          Thử nhập: <code className="bg-gray-200 px-1 rounded">&lt;img src=x onerror=alert('XSS')&gt;</code> → sẽ hiện alert
-        </p>
+        {/* Safe */}
+        <div className="border border-green-400 rounded-lg p-4 bg-green-50 shadow">
+          <h3 className="text-green-700 font-bold text-lg mb-2">✅ Đã sửa (React escape)</h3>
+          <div className="min-h-[60px] border-b border-green-200 pb-2 mb-2">{alertMessage}</div>
+          <p className="text-sm text-gray-600">Dữ liệu hiển thị dạng text thuần, không thực thi script.</p>
+        </div>
       </div>
 
-      {/* PHẦN AN TOÀN */}
-      <div className="border border-green-500 rounded-lg p-4 mb-6 bg-green-50">
-        <h3 className="text-green-700 font-bold text-lg mb-2">
-          ✅ An toàn (dùng {`{alertMessage}`})
-        </h3>
-        <div className="mb-2">{alertMessage}</div>
-        <p className="text-sm text-gray-600">
-          Nội dung được hiển thị dưới dạng text thuần, script không thực thi.
-        </p>
+      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+        <h3 className="font-bold mb-2">📘 Giải thích cơ chế</h3>
+        <p className="mb-2"><code>dangerouslySetInnerHTML</code> cho phép chèn trực tiếp HTML, nếu dữ liệu đến từ người dùng không được lọc, kẻ tấn công có thể nhúng <code>&lt;script&gt;</code> hoặc sự kiện <code>onerror</code>.</p>
+        <p>Cách khắc phục: luôn sử dụng <code>{'{variable}'}</code> (React tự động escape) hoặc dùng thư viện <strong>DOMPurify</strong> nếu cần hiển thị HTML an toàn.</p>
       </div>
-
-      <hr className="my-6" />
-
-      <h3 className="text-xl font-semibold mb-2">Giải thích:</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700">
-        <li>
-          <strong>Lỗi:</strong> <code className="bg-gray-200 px-1 rounded">dangerouslySetInnerHTML</code> cho phép chèn trực tiếp HTML, hacker có thể chèn script độc hại.
-        </li>
-        <li>
-          <strong>Cách sửa:</strong> Sử dụng <code className="bg-gray-200 px-1 rounded">{'{alertMessage}'}</code> (React tự động escape) hoặc dùng thư viện DOMPurify để lọc nếu cần hiển thị HTML an toàn.
-        </li>
-      </ul>
     </div>
   )
 }

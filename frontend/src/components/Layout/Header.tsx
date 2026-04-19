@@ -1,9 +1,14 @@
 const Header = () => {
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <div className="text-2xl font-bold text-blue-600">SmartSave</div>
-        <div className="text-sm text-gray-500">Secure • Smart • Simple</div>
+    <header className="bg-gray-900 text-white shadow-md">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <span className="text-2xl">🛡️</span>
+          <h1 className="text-xl font-bold">Security Lab – XSS Demo</h1>
+        </div>
+        <div className="text-sm bg-red-800 px-3 py-1 rounded-full">
+          ⚠️ Educational purpose only
+        </div>
       </div>
     </header>
   )
