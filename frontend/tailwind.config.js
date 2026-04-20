@@ -9,7 +9,3 @@ export default {
   },
   plugins: [],
 }
-module.exports = {
-  darkMode: 'media', // hoặc 'class'
-  // ...
-}
