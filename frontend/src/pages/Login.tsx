@@ -1,14 +1,30 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate,Link } from 'react-router-dom'
+import { authApi } from '../lib/api'
 
 const Login = () => {
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [remember, setRemember] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert(`🔐 Đăng nhập demo với username: ${username}`)
+    setError('')
+    setLoading(true)
+ 
+    const result = await authApi.login(username, password)
+    setLoading(false)
+ 
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+ 
+    // ✅ Cookie httpOnly được set bởi backend — JS không đọc được (chống XSS)
+    navigate('/')
   }
 
   return (
@@ -62,8 +78,14 @@ const Login = () => {
             </label>
           </div>
 
+          {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+            <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+          </div>
+        )}
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 shadow-md"
           >
             Sign In
@@ -86,6 +108,7 @@ const Login = () => {
           </Link>
         </p>
       </div>
+      
     </div>
   )
 }

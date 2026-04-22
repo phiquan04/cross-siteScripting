@@ -35,10 +35,10 @@ xssRouter.get("/reflected-xss", (req: Request, res: Response): void => {
 xssRouter.get("/reflected-xss-fixed", (req: Request, res: Response): void => {
   const rawMsg = req.query.msg;
 
-  // ✅ FIX 1: Kiểm tra type và convert sang string
+  // FIX 1: Kiểm tra type và convert sang string
   const msgStr = typeof rawMsg === "string" ? rawMsg : String(rawMsg ?? "");
 
-  // ✅ FIX 2: Escape HTML entities bằng thư viện `he`
+  // FIX 2: Escape HTML entities bằng thư viện `he`
   // < → &lt;  |  > → &gt;  |  " → &quot;  |  & → &amp;
   const safeMsg = he.encode(msgStr);
 
@@ -70,10 +70,6 @@ xssRouter.get("/reflected-xss-fixed", (req: Request, res: Response): void => {
   `);
 });
 
-// =============================================================================
-// 📊 So sánh hai endpoint
-// URL: GET /demo/compare
-// =============================================================================
 xssRouter.get("/compare", (_req: Request, res: Response): void => {
   res.json({
     vulnerable: {
