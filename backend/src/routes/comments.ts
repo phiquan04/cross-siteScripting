@@ -5,7 +5,7 @@ import { detectXSS } from "../utils/xss-detector";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const DOMPurify = require("isomorphic-dompurify");
-const sanitize: (dirty: string) => string = DOMPurify.sanitize.bind(DOMPurify);
+const sanitize: (dirty: string, config?: any) => string = DOMPurify.sanitize.bind(DOMPurify);
 
 export const commentRouter = Router();
 
@@ -17,7 +17,7 @@ commentRouter.post(
     try {
       const { content } = req.body;
       if (!content) {
-        res.status(400).json({ error: "Thiếu content" });
+        res.status(400).json({ error: "Missing content" });
         return;
       }
 
@@ -25,7 +25,7 @@ commentRouter.post(
         where: { id: req.params.postId as string },
       });
       if (!post) {
-        res.status(404).json({ error: "Bài viết không tồn tại" });
+        res.status(404).json({ error: "Post not found" });
         return;
       }
 
@@ -36,7 +36,9 @@ commentRouter.post(
         data: {
           content,
           sanitizedContent:
-            mode === "secure" ? sanitize(content) : null,
+            mode === "secure"
+              ? sanitize(content, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
+              : null,
           authorId: req.userId!,
           postId: req.params.postId as string,
         },
@@ -48,7 +50,7 @@ commentRouter.post(
       res.status(201).json({ ...comment, xssDetection: xssInfo });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi server" });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
@@ -63,19 +65,19 @@ commentRouter.delete(
         where: { id: req.params.id as string },
       });
       if (!comment) {
-        res.status(404).json({ error: "Comment không tồn tại" });
+        res.status(404).json({ error: "Comment not found" });
         return;
       }
       if (comment.authorId !== req.userId) {
-        res.status(403).json({ error: "Không có quyền xóa" });
+        res.status(403).json({ error: "Not authorized to delete" });
         return;
       }
 
       await prisma.comment.delete({ where: { id: req.params.id as string } });
-      res.json({ message: "Đã xóa comment" });
+      res.json({ message: "Comment deleted" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi server" });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );

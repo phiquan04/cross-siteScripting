@@ -1,32 +1,51 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { authApi } from '../lib/api'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 const Login = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login } = useAuth()
+  const { success, error: toastError } = useToast()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // UX3: redirect back to original destination after login
+  const from = (location.state as any)?.from || '/'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const result = await authApi.login(username, password)
+    const err = await login(username, password)
     setLoading(false)
-    if (result.error) { setError(result.error); return }
-    navigate('/')
+    if (err) {
+      setError(err)
+      toastError(err)
+      return
+    }
+    success(`Welcome back, @${username}!`)
+    navigate(from, { replace: true })
   }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Đăng nhập</h2>
-          <p className="text-gray-500 text-sm mt-1">Tiếp tục thực hành XSS Lab</p>
+          <h2 className="text-2xl font-bold text-gray-900">Login</h2>
+          <p className="text-gray-500 text-sm mt-1">Continue to XSS Security Lab</p>
         </div>
+
+        {/* UX3: show redirect hint */}
+        {from !== '/' && (
+          <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+            Please login to continue
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -64,14 +83,14 @@ const Login = () => {
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          Chưa có tài khoản?{' '}
+          Don't have an account?{' '}
           <Link to="/register" className="text-blue-600 hover:underline font-medium">
-            Đăng ký
+            Register
           </Link>
         </p>
       </div>

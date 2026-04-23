@@ -22,7 +22,7 @@ export const requireAuth = (
       req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
-      res.status(401).json({ error: "Chưa đăng nhập" });
+      res.status(401).json({ error: "Not logged in" });
       return;
     }
 
@@ -34,6 +34,6 @@ export const requireAuth = (
 
     next();
   } catch {
-    res.status(401).json({ error: "Token không hợp lệ hoặc đã hết hạn" });
+    res.status(401).json({ error: "Invalid or expired token" });
   }
 };

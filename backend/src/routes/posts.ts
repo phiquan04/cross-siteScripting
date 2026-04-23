@@ -3,7 +3,6 @@ import { requireAuth, AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { detectXSS } from "../utils/xss-detector";
 
-// Try to import isomorphic-dompurify, fallback to no sanitization
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const DOMPurify = require("isomorphic-dompurify");
 const sanitize: (dirty: string) => string = DOMPurify.sanitize.bind(DOMPurify);
@@ -11,6 +10,7 @@ const sanitize: (dirty: string) => string = DOMPurify.sanitize.bind(DOMPurify);
 export const postRouter = Router();
 
 // GET /api/posts — list all posts
+// BE1: returns hasXSS + riskLevel computed from detectXSS(content + title)
 postRouter.get("/posts", async (_req, res) => {
   try {
     const posts = await prisma.post.findMany({
@@ -20,10 +20,22 @@ postRouter.get("/posts", async (_req, res) => {
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json(posts);
+
+    // Compute XSS info for each post (content + title)
+    const postsWithXss = posts.map((post) => {
+      const contentXss = detectXSS(post.content);
+      const titleXss = detectXSS(post.title); // BE3: detect XSS in title too
+      const isXSS = contentXss.isXSS || titleXss.isXSS;
+      const riskLevel = contentXss.score >= titleXss.score
+        ? contentXss.riskLevel
+        : titleXss.riskLevel;
+      return { ...post, hasXSS: isXSS, riskLevel };
+    });
+
+    res.json(postsWithXss);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Lỗi server" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -43,19 +55,24 @@ postRouter.get("/posts/:id", async (req, res) => {
       },
     });
     if (!post) {
-      res.status(404).json({ error: "Bài viết không tồn tại" });
+      res.status(404).json({ error: "Post not found" });
       return;
     }
-    res.json(post);
+    // BE1+BE3: attach xss info
+    const contentXss = detectXSS(post.content);
+    const titleXss = detectXSS(post.title);
+    const hasXSS = contentXss.isXSS || titleXss.isXSS;
+    const riskLevel = contentXss.score >= titleXss.score
+      ? contentXss.riskLevel
+      : titleXss.riskLevel;
+    res.json({ ...post, hasXSS, riskLevel });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Lỗi server" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
 // POST /api/posts — create post (auth required)
-// ?mode=secure  → sanitize with DOMPurify
-// default       → vulnerable (raw HTML stored)
 postRouter.post(
   "/posts",
   requireAuth as any,
@@ -64,17 +81,21 @@ postRouter.post(
       const { title, content } = req.body;
 
       if (!title || !content) {
-        res.status(400).json({ error: "Thiếu title hoặc content" });
+        res.status(400).json({ error: "Missing title or content" });
         return;
       }
 
       const mode = req.query.mode as string | undefined;
-      const xssInfo = detectXSS(content);
+      // BE3: detect XSS in both content and title
+      const contentXss = detectXSS(content);
+      const titleXss = detectXSS(title);
+      const xssInfo = contentXss.score >= titleXss.score ? contentXss : titleXss;
+      xssInfo.isXSS = contentXss.isXSS || titleXss.isXSS;
 
       const post = await prisma.post.create({
         data: {
           title,
-          content, // always store raw
+          content,
           sanitizedContent:
             mode === "secure" ? sanitize(content) : null,
           authorId: req.userId!,
@@ -87,7 +108,7 @@ postRouter.post(
       res.status(201).json({ ...post, xssDetection: xssInfo });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi server" });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
@@ -103,11 +124,11 @@ postRouter.put(
         where: { id: postId },
       });
       if (!existing) {
-        res.status(404).json({ error: "Bài viết không tồn tại" });
+        res.status(404).json({ error: "Post not found" });
         return;
       }
       if (existing.authorId !== req.userId) {
-        res.status(403).json({ error: "Không có quyền chỉnh sửa" });
+        res.status(403).json({ error: "Not authorized to edit" });
         return;
       }
 
@@ -132,7 +153,7 @@ postRouter.put(
       res.json(post);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi server" });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
@@ -143,27 +164,26 @@ postRouter.delete(
   requireAuth as any,
   async (req: AuthRequest, res) => {
     try {
-      // Delete comments first, then post
       const deletePostId = req.params.id as string;
       const existing2 = await prisma.post.findUnique({
         where: { id: deletePostId },
       });
       if (!existing2) {
-        res.status(404).json({ error: "Bài viết không tồn tại" });
+        res.status(404).json({ error: "Post not found" });
         return;
       }
       if (existing2.authorId !== req.userId) {
-        res.status(403).json({ error: "Không có quyền xóa" });
+        res.status(403).json({ error: "Not authorized to delete" });
         return;
       }
 
       await prisma.comment.deleteMany({ where: { postId: deletePostId } });
       await prisma.post.delete({ where: { id: deletePostId } });
 
-      res.json({ message: "Đã xóa bài viết" });
+      res.json({ message: "Post deleted" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi server" });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );

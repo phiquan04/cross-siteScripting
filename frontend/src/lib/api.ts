@@ -1,5 +1,5 @@
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 
 interface ApiResponse<T = unknown> {
   data?: T
@@ -20,10 +20,10 @@ async function apiFetch<T>(
       },
     })
     const json = await res.json()
-    if (!res.ok) return { error: json.error || 'Lỗi không xác định' }
+    if (!res.ok) return { error: json.error || 'Unknown error' }
     return { data: json }
   } catch {
-    return { error: 'Không thể kết nối đến server' }
+    return { error: 'Cannot connect to server' }
   }
 }
 
@@ -43,6 +43,9 @@ export interface Post {
   author: { id: string; username: string }
   comments?: Comment[]
   _count?: { comments: number }
+  // BE1+BE3: XSS info computed server-side
+  hasXSS?: boolean
+  riskLevel?: 'none' | 'low' | 'medium' | 'high' | 'critical'
   createdAt: string
   updatedAt: string
 }
@@ -124,4 +127,8 @@ export const securityApi = {
       method: 'POST',
       body: JSON.stringify({ enabled }),
     }),
+
+  // BE2: sync CSP state from server on load
+  getCspStatus: () =>
+    apiFetch<{ cspEnabled: boolean }>('/api/csp-status'),
 }

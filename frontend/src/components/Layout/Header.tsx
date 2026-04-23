@@ -1,34 +1,27 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Shield, Menu, X } from 'lucide-react'
-import { useEffect } from 'react'
-import { authApi, type User } from '../../lib/api'
+import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 
 const NAV = [
-  { to: '/posts',    label: 'Stored XSS' },
-  { to: '/xss-demo', label: 'DOM XSS' },
-  { to: '/security', label: 'Security Lab' },
+  { to: '/posts',         label: 'Stored XSS' },
+  { to: '/xss-demo',     label: 'DOM XSS' },
+  { to: '/reflected-xss', label: 'Reflected XSS' },
+  { to: '/security',     label: 'Security Lab' },
 ]
 
 const Header = () => {
-  const [user, setUser] = useState<User | null>(null)
+  const { user, logout } = useAuth()
+  const { success } = useToast()
   const [open, setOpen] = useState(false)
   const location = useLocation()
-
-  useEffect(() => {
-    authApi.me().then(res => {
-      if (res.data) setUser(res.data.user)
-    })
-  }, [])
-
-  // Close mobile menu on route change
-  const prevPath = useState(location.pathname)[0]
-  if (prevPath !== location.pathname && open) setOpen(false)
+  const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await authApi.logout()
-    setUser(null)
-    window.location.href = '/'
+    await logout()
+    success('Logged out successfully')
+    navigate('/')
   }
 
   return (
@@ -48,7 +41,7 @@ const Header = () => {
               key={n.to}
               to={n.to}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                location.pathname === n.to
+                location.pathname.startsWith(n.to)
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
@@ -67,19 +60,19 @@ const Header = () => {
                 onClick={handleLogout}
                 className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
               >
-                Đăng xuất
+                Logout
               </button>
             </div>
           ) : (
             <div className="hidden md:flex items-center gap-2">
               <Link to="/login">
                 <button className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
-                  Đăng nhập
+                  Login
                 </button>
               </Link>
               <Link to="/register">
                 <button className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
-                  Đăng ký
+                  Register
                 </button>
               </Link>
             </div>
@@ -102,8 +95,9 @@ const Header = () => {
             <Link
               key={n.to}
               to={n.to}
+              onClick={() => setOpen(false)}
               className={`block px-3 py-2 rounded-md text-sm font-medium transition ${
-                location.pathname === n.to
+                location.pathname.startsWith(n.to)
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
@@ -119,19 +113,19 @@ const Header = () => {
                   onClick={handleLogout}
                   className="text-sm text-red-600 hover:text-red-700 font-medium"
                 >
-                  Đăng xuất
+                  Logout
                 </button>
               </div>
             ) : (
               <div className="flex gap-2">
-                <Link to="/login" className="flex-1">
+                <Link to="/login" className="flex-1" onClick={() => setOpen(false)}>
                   <button className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
-                    Đăng nhập
+                    Login
                   </button>
                 </Link>
-                <Link to="/register" className="flex-1">
+                <Link to="/register" className="flex-1" onClick={() => setOpen(false)}>
                   <button className="w-full px-3 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 transition">
-                    Đăng ký
+                    Register
                   </button>
                 </Link>
               </div>

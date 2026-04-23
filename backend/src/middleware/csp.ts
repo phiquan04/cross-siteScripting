@@ -6,6 +6,11 @@ export function toggleCSP(enabled: boolean) {
   cspEnabled = enabled;
 }
 
+// BE2: expose current CSP state so frontend can sync on load
+export function getCSPStatus() {
+  return cspEnabled;
+}
+
 export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
   if (cspEnabled) {
     res.setHeader(

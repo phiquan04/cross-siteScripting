@@ -5,10 +5,10 @@ import { authRouter } from "./routes/auth";
 import { xssRouter } from "./routes/xss-demo";
 import { postRouter } from "./routes/posts";
 import { commentRouter } from "./routes/comments";
-import { cspMiddleware, toggleCSP } from "./middleware/csp";
+import { cspMiddleware, toggleCSP, getCSPStatus } from "./middleware/csp";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 app.use(
@@ -34,17 +34,22 @@ app.post("/api/toggle-csp", (req, res) => {
   res.json({ cspEnabled: !!enabled });
 });
 
+// BE2: GET CSP status so frontend can sync state on page load
+app.get("/api/csp-status", (_req, res) => {
+  res.json({ cspEnabled: getCSPStatus() });
+});
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Backend server running at http://localhost:${PORT}`);
-  console.log(`📋 Auth routes: POST /api/register | POST /api/login | POST /api/logout`);
-  console.log(`📝 Post routes: GET /api/posts | POST /api/posts | GET /api/posts/:id`);
-  console.log(`💬 Comment routes: POST /api/posts/:id/comments | DELETE /api/comments/:id`);
-  console.log(`🐛 XSS demo (có lỗi): GET /demo/reflected-xss?msg=hello`);
-  console.log(`✅ XSS demo (đã fix): GET /demo/reflected-xss-fixed?msg=hello`);
+  console.log(`Backend server running at http://localhost:${PORT}`);
+  console.log(`Auth routes: POST /api/register | POST /api/login | POST /api/logout`);
+  console.log(`Post routes: GET /api/posts | POST /api/posts | GET /api/posts/:id`);
+  console.log(`Comment routes: POST /api/posts/:id/comments | DELETE /api/comments/:id`);
+  console.log(`XSS demo (vulnerable): GET /demo/reflected-xss?msg=hello`);
+  console.log(`XSS demo (fixed): GET /demo/reflected-xss-fixed?msg=hello`);
 });
 
 export default app;

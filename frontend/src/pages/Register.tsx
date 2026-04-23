@@ -15,26 +15,26 @@ const Register = () => {
     e.preventDefault()
     setError('')
     setSuccess('')
-    if (password.length < 6) { setError('Mật khẩu phải ít nhất 6 ký tự'); return }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) { setError('Username chỉ chứa chữ, số và dấu _'); return }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) { setError('Username can only contain letters, numbers and underscores'); return }
     setLoading(true)
     const result = await authApi.register(username, password)
     setLoading(false)
     if (result.error) { setError(result.error); return }
-    setSuccess('Đăng ký thành công! Đang chuyển hướng...')
+    setSuccess('Registration successful! Redirecting...')
     setTimeout(() => navigate('/login'), 1200)
   }
 
-  const strength = password.length === 0 ? null : password.length < 4 ? 'Yếu' : password.length < 8 ? 'Trung bình' : 'Mạnh'
-  const strengthClass = strength === 'Yếu' ? 'bg-red-500' : strength === 'Trung bình' ? 'bg-yellow-400' : 'bg-green-500'
-  const strengthWidth = strength === 'Yếu' ? 'w-1/3' : strength === 'Trung bình' ? 'w-2/3' : 'w-full'
+  const strength = password.length === 0 ? null : password.length < 4 ? 'Weak' : password.length < 8 ? 'Medium' : 'Strong'
+  const strengthClass = strength === 'Weak' ? 'bg-red-500' : strength === 'Medium' ? 'bg-yellow-400' : 'bg-green-500'
+  const strengthWidth = strength === 'Weak' ? 'w-1/3' : strength === 'Medium' ? 'w-2/3' : 'w-full'
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Tạo tài khoản</h2>
-          <p className="text-gray-500 text-sm mt-1">Đăng ký để bắt đầu thực hành</p>
+          <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
+          <p className="text-gray-500 text-sm mt-1">Register to start the lab</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,8 +62,8 @@ const Register = () => {
             {strength && (
               <div className="mt-1.5">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Độ mạnh mật khẩu</span>
-                  <span className={strength === 'Yếu' ? 'text-red-500' : strength === 'Trung bình' ? 'text-yellow-600' : 'text-green-600'}>
+                  <span>Password strength</span>
+                  <span className={strength === 'Weak' ? 'text-red-500' : strength === 'Medium' ? 'text-yellow-600' : 'text-green-600'}>
                     {strength}
                   </span>
                 </div>
@@ -81,7 +81,7 @@ const Register = () => {
           )}
           {success && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-700 text-sm">✓ {success}</p>
+              <p className="text-green-700 text-sm">{success}</p>
             </div>
           )}
 
@@ -91,14 +91,14 @@ const Register = () => {
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+            {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          Đã có tài khoản?{' '}
+          Already have an account?{' '}
           <Link to="/login" className="text-blue-600 hover:underline font-medium">
-            Đăng nhập
+            Login
           </Link>
         </p>
       </div>

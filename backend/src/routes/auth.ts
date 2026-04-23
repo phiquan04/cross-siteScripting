@@ -11,35 +11,35 @@ authRouter.post("/register", async (req: Request, res: Response): Promise<void> 
     const { username, password } = req.body;
 
     if (!username || !password) {
-      res.status(400).json({ error: "Vui lòng nhập username và password" });
+      res.status(400).json({ error: "Please enter username and password" });
       return;
     }
 
     if (typeof username !== "string" || typeof password !== "string") {
-      res.status(400).json({ error: "Dữ liệu không hợp lệ" });
+      res.status(400).json({ error: "Invalid data" });
       return;
     }
 
     if (username.length < 3 || username.length > 30) {
-      res.status(400).json({ error: "Username phải từ 3–30 ký tự" });
+      res.status(400).json({ error: "Username must be 3-30 characters" });
       return;
     }
 
     if (password.length < 6) {
-      res.status(400).json({ error: "Password phải ít nhất 6 ký tự" });
+      res.status(400).json({ error: "Password must be at least 6 characters" });
       return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       res.status(400).json({
-        error: "Username chỉ chứa chữ cái, số và dấu gạch dưới",
+        error: "Username can only contain letters, numbers and underscores",
       });
       return;
     }
 
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) {
-      res.status(409).json({ error: "Username đã tồn tại" });
+      res.status(409).json({ error: "Username already exists" });
       return;
     }
 
@@ -47,16 +47,16 @@ authRouter.post("/register", async (req: Request, res: Response): Promise<void> 
 
     const user = await prisma.user.create({
       data: { username, password: hashedPassword },
-      select: { id: true, username: true, createdAt: true }, // KHÔNG trả password
+      select: { id: true, username: true, createdAt: true },
     });
 
     res.status(201).json({
-      message: "Đăng ký thành công",
+      message: "Registration successful",
       user,
     });
   } catch (error) {
     console.error("[register] Error:", error);
-    res.status(500).json({ error: "Lỗi server, vui lòng thử lại" });
+    res.status(500).json({ error: "Server error, please try again" });
   }
 });
 
@@ -66,20 +66,20 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
     const { username, password } = req.body;
 
     if (!username || !password) {
-      res.status(400).json({ error: "Vui lòng nhập username và password" });
+      res.status(400).json({ error: "Please enter username and password" });
       return;
     }
 
     const user = await prisma.user.findUnique({ where: { username } });
 
     if (!user) {
-      res.status(401).json({ error: "Username hoặc password không đúng" });
+      res.status(401).json({ error: "Invalid username or password" });
       return;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      res.status(401).json({ error: "Username hoặc password không đúng" });
+      res.status(401).json({ error: "Invalid username or password" });
       return;
     }
 
@@ -91,14 +91,14 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
     );
 
     res.cookie("token", token, {
-      httpOnly: true,  // ✅ Không thể đọc bằng JavaScript (chống XSS)
-      secure: process.env.NODE_ENV === "production", // ✅ Chỉ HTTPS trên production
-      sameSite: "strict", // ✅ Chống CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.json({
-      message: "Đăng nhập thành công",
+      message: "Login successful",
       user: {
         id: user.id,
         username: user.username,
@@ -106,7 +106,7 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
     });
   } catch (error) {
     console.error("[login] Error:", error);
-    res.status(500).json({ error: "Lỗi server, vui lòng thử lại" });
+    res.status(500).json({ error: "Server error, please try again" });
   }
 });
 
@@ -116,7 +116,7 @@ authRouter.post("/logout", (_req: Request, res: Response): void => {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   });
-  res.json({ message: "Đăng xuất thành công" });
+  res.json({ message: "Logged out successfully" });
 });
 
 authRouter.get("/me", requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
@@ -127,13 +127,13 @@ authRouter.get("/me", requireAuth, async (req: AuthRequest, res: Response): Prom
     });
 
     if (!user) {
-      res.status(404).json({ error: "Không tìm thấy user" });
+      res.status(404).json({ error: "User not found" });
       return;
     }
 
     res.json({ user });
   } catch (error) {
     console.error("[me] Error:", error);
-    res.status(500).json({ error: "Lỗi server" });
+    res.status(500).json({ error: "Server error" });
   }
 });

