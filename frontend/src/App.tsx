@@ -3,8 +3,11 @@ import Layout from './components/Layout/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Post from './pages/Post'
+import Posts from './pages/Posts'
+import CreatePost from './pages/CreatePost'
+import SecurityDashboard from './pages/SecurityDashboard'
 import XSSDemo from './components/XSSDemo'
-import { Shield, AlertTriangle, BookOpen, Code2, Lock, Zap, ArrowRight } from 'lucide-react'
+import { AlertTriangle, BookOpen, Code2, Lock, Zap, ArrowRight } from 'lucide-react'
 
 function Home() {
   return (
@@ -28,11 +31,11 @@ function Home() {
                 Start Learning Now
               </button>
             </RouterLink>
-            <a href="#lessons">
+            <RouterLink to="/posts">
               <button className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition">
-                View Lessons
+                View Posts
               </button>
-            </a>
+            </RouterLink>
           </div>
         </div>
 
@@ -63,20 +66,22 @@ function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* DOM XSS */}
-            <div className="border-l-4 border-l-blue-500 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Code2 className="w-6 h-6 text-blue-600" />
-                <h3 className="text-xl font-bold text-gray-900">DOM XSS</h3>
+            <RouterLink to="/xss-demo">
+              <div className="border-l-4 border-l-blue-500 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-4 h-full">
+                <div className="flex items-center gap-3">
+                  <Code2 className="w-6 h-6 text-blue-600" />
+                  <h3 className="text-xl font-bold text-gray-900">DOM XSS</h3>
+                </div>
+                <p className="text-gray-600">
+                  Understand how JavaScript DOM manipulation can create vulnerabilities through unsafe innerHTML and dangerouslySetInnerHTML.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2"><span className="text-blue-600">&#8226;</span> Understanding DOM vulnerabilities</li>
+                  <li className="flex items-start gap-2"><span className="text-blue-600">&#8226;</span> innerHTML vs textContent</li>
+                  <li className="flex items-start gap-2"><span className="text-blue-600">&#8226;</span> Safe rendering practices</li>
+                </ul>
               </div>
-              <p className="text-gray-600">
-                Understand how JavaScript DOM manipulation can create vulnerabilities through unsafe innerHTML and dangerouslySetInnerHTML.
-              </p>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2"><span className="text-blue-600">•</span> Understanding DOM vulnerabilities</li>
-                <li className="flex items-start gap-2"><span className="text-blue-600">•</span> innerHTML vs textContent</li>
-                <li className="flex items-start gap-2"><span className="text-blue-600">•</span> Safe rendering practices</li>
-              </ul>
-            </div>
+            </RouterLink>
 
             {/* Reflected XSS */}
             <div className="border-l-4 border-l-purple-500 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-4">
@@ -88,27 +93,29 @@ function Home() {
                 Learn how user input can be reflected back in responses without proper sanitization, affecting users who click malicious links.
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2"><span className="text-purple-600">•</span> Query parameter vulnerabilities</li>
-                <li className="flex items-start gap-2"><span className="text-purple-600">•</span> HTML escaping techniques</li>
-                <li className="flex items-start gap-2"><span className="text-purple-600">•</span> Secure cookie practices</li>
+                <li className="flex items-start gap-2"><span className="text-purple-600">&#8226;</span> Query parameter vulnerabilities</li>
+                <li className="flex items-start gap-2"><span className="text-purple-600">&#8226;</span> HTML escaping techniques</li>
+                <li className="flex items-start gap-2"><span className="text-purple-600">&#8226;</span> Secure cookie practices</li>
               </ul>
             </div>
 
             {/* Stored XSS */}
-            <div className="border-l-4 border-l-green-500 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Lock className="w-6 h-6 text-green-600" />
-                <h3 className="text-xl font-bold text-gray-900">Stored XSS</h3>
+            <RouterLink to="/posts">
+              <div className="border-l-4 border-l-green-500 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-4 h-full">
+                <div className="flex items-center gap-3">
+                  <Lock className="w-6 h-6 text-green-600" />
+                  <h3 className="text-xl font-bold text-gray-900">Stored XSS</h3>
+                </div>
+                <p className="text-gray-600">
+                  Explore persistent XSS attacks where malicious scripts are stored in the database and executed for all users viewing the content.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2"><span className="text-green-600">&#8226;</span> Content sanitization with DOMPurify</li>
+                  <li className="flex items-start gap-2"><span className="text-green-600">&#8226;</span> Server-side validation</li>
+                  <li className="flex items-start gap-2"><span className="text-green-600">&#8226;</span> Content Security Policy</li>
+                </ul>
               </div>
-              <p className="text-gray-600">
-                Explore persistent XSS attacks where malicious scripts are stored in the database and executed for all users viewing the content.
-              </p>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2"><span className="text-green-600">•</span> Content sanitization with DOMPurify</li>
-                <li className="flex items-start gap-2"><span className="text-green-600">•</span> Server-side validation</li>
-                <li className="flex items-start gap-2"><span className="text-green-600">•</span> Content Security Policy</li>
-              </ul>
-            </div>
+            </RouterLink>
           </div>
         </div>
       </section>
@@ -124,9 +131,9 @@ function Home() {
                 <p className="text-gray-600 mb-6">
                   Test your skills in our secure sandbox environment. Practice identifying vulnerabilities and implementing fixes without risk.
                 </p>
-                <RouterLink to="/register">
+                <RouterLink to="/security">
                   <button className="px-5 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition inline-flex items-center gap-2 shadow-sm">
-                    Access Lab <ArrowRight className="w-4 h-4" />
+                    Security Dashboard <ArrowRight className="w-4 h-4" />
                   </button>
                 </RouterLink>
               </div>
@@ -150,7 +157,7 @@ function Home() {
                 <div className="text-5xl font-bold text-blue-200 mb-4">{step.num}</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
                 <p className="text-gray-600">{step.desc}</p>
-                {idx < 3 && <div className="hidden md:block absolute top-12 -right-4 text-2xl text-gray-300">→</div>}
+                {idx < 3 && <div className="hidden md:block absolute top-12 -right-4 text-2xl text-gray-300">&rarr;</div>}
               </div>
             ))}
           </div>
@@ -167,8 +174,11 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/posts" element={<Posts />} />
+        <Route path="/posts/new" element={<CreatePost />} />
         <Route path="/post/:id" element={<Post />} />
         <Route path="/xss-demo" element={<XSSDemo />} />
+        <Route path="/security" element={<SecurityDashboard />} />
       </Routes>
     </Layout>
   )
