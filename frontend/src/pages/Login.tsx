@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate,Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { authApi } from '../lib/api'
+import { Loader2 } from 'lucide-react'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -8,107 +9,72 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [remember, setRemember] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
- 
     const result = await authApi.login(username, password)
     setLoading(false)
- 
-    if (result.error) {
-      setError(result.error)
-      return
-    }
- 
-    // ✅ Cookie httpOnly được set bởi backend — JS không đọc được (chống XSS)
+    if (result.error) { setError(result.error); return }
     navigate('/')
   }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100 dark:border-gray-700">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to continue learning</p>
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Đăng nhập</h2>
+          <p className="text-gray-500 text-sm mt-1">Tiếp tục thực hành XSS Lab</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              placeholder="securitylearner"
+              onChange={e => setUsername(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="your_username"
               required
             />
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password
-              </label>
-              <a href="#" className="text-sm text-blue-600 hover:underline">Forgot?</a>
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              onChange={e => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               required
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
-            </label>
-          </div>
-
           {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
-            <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
-          </div>
-        )}
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition"
           >
-            Sign In
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-          Don't have an account?{' '}
+        <p className="text-center text-sm text-gray-500 mt-5">
+          Chưa có tài khoản?{' '}
           <Link to="/register" className="text-blue-600 hover:underline font-medium">
-            Sign up
+            Đăng ký
           </Link>
         </p>
       </div>
-      
     </div>
   )
 }

