@@ -3,9 +3,12 @@ import he from "he";
 export const xssRouter = Router();
 
 xssRouter.get("/reflected-xss", (req: Request, res: Response): void => {
-  const msg = req.query.msg;
+  const rawMsg = req.query.msg;
 
-  // VULNERABLE: User input is inserted directly into HTML response
+  // FIX [Lỗi 3]: Thêm default value nếu không có query param
+  const msg = typeof rawMsg === "string" ? rawMsg : String(rawMsg ?? "Hello!");
+
+  // VULNERABLE: msg vẫn được insert trực tiếp vào HTML — đây là intentional demo
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -34,12 +37,16 @@ xssRouter.get("/reflected-xss", (req: Request, res: Response): void => {
 xssRouter.get("/reflected-xss-fixed", (req: Request, res: Response): void => {
   const rawMsg = req.query.msg;
 
-  // FIX 1: Type check and convert to string
+  // FIX 1: Type check và convert về string an toàn
   const msgStr = typeof rawMsg === "string" ? rawMsg : String(rawMsg ?? "");
 
-  // FIX 2: Escape HTML entities using the `he` library
+  // FIX 2: Escape HTML entities bằng thư viện `he`
   // < → &lt;  |  > → &gt;  |  " → &quot;  |  & → &amp;
   const safeMsg = he.encode(msgStr);
+
+  // FIX [Lỗi 1]: rawMsg cũng phải được escape trước khi hiển thị!
+  // Tránh XSS ngay trong dòng "Raw input: ..."
+  const safeRawMsg = he.encode(msgStr);
 
   res.send(`
     <!DOCTYPE html>
@@ -59,7 +66,7 @@ xssRouter.get("/reflected-xss-fixed", (req: Request, res: Response): void => {
         <h2>This page is FIXED (Demo)</h2>
         <p>Input is escaped before rendering:</p>
         <div class="code">const safeMsg = he.encode(req.query.msg)</div>
-        <p>Raw input: <span class="safe-value">${rawMsg}</span></p>
+        <p>Raw input (escaped for display): <span class="safe-value">${safeRawMsg}</span></p>
         <p>After escaping: <span class="safe-value">${safeMsg}</span></p>
       </div>
       <h1>${safeMsg}</h1>
@@ -81,7 +88,7 @@ xssRouter.get("/compare", (_req: Request, res: Response): void => {
       url: "/demo/reflected-xss-fixed?msg=YOUR_PAYLOAD",
       description: "HTML escaped using 'he' library — safe",
       example: "/demo/reflected-xss-fixed?msg=<img src=x onerror=alert(1)>",
-      code: `const safeMsg = he.encode(req.query.msg);\nres.send("<h1>" + safeMsg + "</h1>")`,
+      code: `const safeMsg = he.encode(String(req.query.msg ?? ""));\nres.send("<h1>" + safeMsg + "</h1>")`,
     },
     cookieSecurity: {
       httpOnly: "true — JavaScript cannot read cookies",

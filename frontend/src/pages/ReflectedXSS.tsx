@@ -17,12 +17,6 @@ const DEMO_LINKS = [
     desc: 'Bypasses filters that only block <script>',
   },
   {
-    label: 'SVG onload',
-    path: '/reflected-xss?msg=<svg onload="alert(document.domain)">',
-    fixedPath: '/reflected-xss-fixed?msg=<svg onload="alert(document.domain)">',
-    desc: 'SVG element with JavaScript event',
-  },
-  {
     label: 'Cookie Attempt',
     path: '/reflected-xss?msg=<img src=x onerror="alert(\'Cookie: \'+document.cookie)">',
     fixedPath: '/reflected-xss-fixed?msg=<img src=x onerror="alert(\'Cookie: \'+document.cookie)">',

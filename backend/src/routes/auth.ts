@@ -6,6 +6,12 @@ import { requireAuth, AuthRequest } from "../middleware/auth";
 
 export const authRouter = Router();
 
+// FIX [Lỗi 4]: Validate JWT_SECRET khi khởi động — không dùng fallback yếu
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Server cannot start.");
+}
+
 authRouter.post("/register", async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
@@ -60,9 +66,41 @@ authRouter.post("/register", async (req: Request, res: Response): Promise<void> 
   }
 });
 
+// FIX [Lỗi 5]: Thêm in-memory rate limiting đơn giản cho /login
+// Production nên dùng express-rate-limit + Redis
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 phút
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return true; // allowed
+  }
+
+  if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+    return false; // blocked
+  }
+
+  entry.count += 1;
+  return true; // allowed
+}
 
 authRouter.post("/login", async (req: Request, res: Response): Promise<void> => {
   try {
+    const ip = req.ip ?? "unknown";
+
+    // FIX [Lỗi 5]: Rate limiting
+    if (!checkRateLimit(ip)) {
+      res.status(429).json({
+        error: "Too many login attempts. Please try again in 15 minutes.",
+      });
+      return;
+    }
+
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -83,10 +121,10 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const secret = process.env.JWT_SECRET || "fallback_secret";
+    // FIX [Lỗi 4]: Dùng JWT_SECRET đã validate, không còn fallback
     const token = jwt.sign(
       { userId: user.id, username: user.username },
-      secret,
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 

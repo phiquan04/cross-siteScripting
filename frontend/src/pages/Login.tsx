@@ -21,6 +21,7 @@ const Login = () => {
     e.preventDefault()
     setError('')
     setLoading(true)
+    
     const err = await login(username, password)
     setLoading(false)
     if (err) {
